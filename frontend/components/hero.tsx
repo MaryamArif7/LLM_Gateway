@@ -1,8 +1,13 @@
+"use client";
 import { Button } from "@/components/ui/button";
 import { RequestLifecycle } from "@/components/request-lifecycle";
 import { ArrowRight } from "lucide-react";
-
+import {useRouter} from "next/navigation";
 export function Hero() {
+  const router = useRouter();
+const handleOpenChat=()=>{
+  router.push("/chat");
+}
   return (
     <section className="relative overflow-hidden">
       <div
@@ -38,7 +43,7 @@ export function Hero() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" className="gap-2">
+            <Button onClick={handleOpenChat} size="lg" className="gap-2">
               Open the chat
               <ArrowRight className="h-4 w-4" />
             </Button>
