@@ -129,7 +129,7 @@ export function RequestLifecycle() {
         <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-stretch">
           {/* your app */}
           <div className="flex shrink-0 items-center justify-center rounded-xl border border-border bg-background/50 px-4 py-3 text-xs font-medium text-muted-foreground md:w-24">
-            your app
+          Gateway
           </div>
 
           {/* steps */}
