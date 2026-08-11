@@ -27,30 +27,26 @@ export function Hero() {
       <div className="relative mx-auto max-w-7xl px-6 py-16 lg:py-24">
         {/* centered heading */}
         <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            One key for your entire AI stack
-          </span>
+        
 
           <h1 className="mt-6 text-balance text-5xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
-            The AI Gateway <span className="text-primary text-glow">for platform teams</span>
+          Every request, routed right and  <span className="text-primary text-glow">logged fully</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">
-            Put your full AI stack behind one key. See who is driving spend, cap it before it runs,
-            and send each request to the model that should handle it — with observability built in.
+          Prompts get classified, sent to the best-fit model, cached when possible, and rerouted on failure — with token counts, cost, and latency logged for every single one.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button size="lg" className="gap-2">
-              Start free
+             Open the chat
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline">
-              Talk to sales
+             <Button size="lg" variant="outline">
+            Check Github
             </Button>
           </div>
-          <p className="mt-4 font-mono text-xs text-muted-foreground">Self-host in minutes. No credit card.</p>
+        
         </div>
 
         {/* full-width lifecycle animation */}

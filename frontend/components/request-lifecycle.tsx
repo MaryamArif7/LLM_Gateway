@@ -214,9 +214,7 @@ export function RequestLifecycle() {
         ))}
       </div>
 
-      <p className="mt-4 text-center text-xs text-muted-foreground">
-        Sample session — every field above (and more) is written to Postgres per request.
-      </p>
+    
     </div>
   )
 }

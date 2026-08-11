@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: 'AI Gateway — One key for your entire AI stack',
   description:
     'Put your full AI stack behind one key. See who is driving spend, cap it before it runs, and route every request to the right model — with built-in observability.',
-  generator: 'v0.app',
+
   icons: {
     icon: [
       {
