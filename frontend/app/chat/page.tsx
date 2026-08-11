@@ -70,9 +70,7 @@ export default function ChatPage() {
           </span>
           Gateway
         </div>
-        <span className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
-          Auto-routed
-        </span>
+       
       </header>
 
       <div ref={scrollRef} className="relative flex-1 overflow-y-auto">
@@ -175,9 +173,7 @@ export default function ChatPage() {
               {routing ? <Square size={13} /> : <ArrowUp size={16} />}
             </button>
           </div>
-          <p className="mt-2.5 text-center text-xs text-muted-foreground">
-            UI only — responses are mocked locally, no API calls are made yet.
-          </p>
+        
         </div>
       </div>
     </div>
