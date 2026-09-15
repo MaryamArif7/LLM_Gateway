@@ -20,7 +20,7 @@ def get_provider(name: str) -> BaseProvider:
     return _registry[name]
 
 
-# model -> provider name, single source of truth for routing/comparison
+
 MODEL_PROVIDER_MAP = {
     "gpt-4o": "openai",
     "gpt-4o-mini": "openai",
