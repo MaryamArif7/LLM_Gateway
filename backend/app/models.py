@@ -8,6 +8,51 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String(255), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    api_keys: Mapped[list["ApiKey"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    provider_keys: Mapped[list["ProviderKey"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+
+class ApiKey(Base):
+    """A gateway key — what a user pastes into the chat client to call
+    OUR service. Stored as a one-way hash, never the raw value."""
+
+    __tablename__ = "api_keys"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    key_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), default="Default key")
+    status: Mapped[str] = mapped_column(String(20), default="active")  # active | revoked
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["User"] = relationship(back_populates="api_keys")
+
+
+class ProviderKey(Base):
+    """A user's own OpenAI / Anthropic / Gemini / Mistral key — the BYOK
+    vault. The raw key is encrypted, never stored or logged in plain text."""
+
+    __tablename__ = "provider_keys"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    provider: Mapped[str] = mapped_column(String(50))  # openai | anthropic | gemini | mistral
+    encrypted_key: Mapped[str] = mapped_column(Text)
+    key_last4: Mapped[str] = mapped_column(String(10))
+    status: Mapped[str] = mapped_column(String(20), default="unverified")  # unverified | valid | invalid
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped["User"] = relationship(back_populates="provider_keys")
+
+
 class Conversation(Base):
     __tablename__ = "conversations"
 

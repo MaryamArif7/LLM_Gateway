@@ -8,21 +8,24 @@ generate the ground-truth data to validate the classifier in router/.
 import asyncio
 import time
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.auth import get_current_user
 from app.cache import check_rate_limit
 from app.providers import MODEL_PROVIDER_MAP, get_provider
 from app.providers.base import ChatMessage
+from app.routes.chat import _load_provider_keys
 from app.schemas import CompareRequest
+from app.models import User
 
 router = APIRouter(prefix="/api/compare", tags=["compare"])
 
 MAX_COMPARE_MODELS = 4  # guard against someone passing 20 models and nuking their bill
 
 
-async def _run_one(provider_name: str, model_name: str, prompt: str, temperature: float, max_tokens: int) -> dict:
+async def _run_one(provider_name: str, model_name: str, prompt: str, temperature: float, max_tokens: int, api_key: str) -> dict:
     try:
-        provider = get_provider(provider_name)
+        provider = get_provider(provider_name, api_key)
         start = time.perf_counter()
         resp = await provider.chat([ChatMessage(role="user", content=prompt)], model_name, temperature, max_tokens)
         return {
@@ -40,11 +43,10 @@ async def _run_one(provider_name: str, model_name: str, prompt: str, temperature
 
 
 @router.post("")
-async def compare(req: CompareRequest, request: Request):
-    client_id = request.client.host if request.client else "anonymous"
+async def compare(req: CompareRequest, request: Request, user: User = Depends(get_current_user)):
     # compare is expensive (N calls per request) — charge it against the same
     # per-minute budget as chat so it can't be used to dodge rate limits
-    allowed, _ = await check_rate_limit(client_id)
+    allowed, _ = await check_rate_limit(str(user.id))
     if not allowed:
         raise HTTPException(status_code=429, detail="Rate limit exceeded. Try again in a bit.")
 
@@ -55,8 +57,13 @@ async def compare(req: CompareRequest, request: Request):
     if unknown:
         raise HTTPException(status_code=400, detail=f"Unknown model(s): {unknown}")
 
+    provider_keys = await _load_provider_keys(user.id)
+    missing = [m for m in req.models if MODEL_PROVIDER_MAP[m] not in provider_keys]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Connect a provider key before comparing: {missing}")
+
     tasks = [
-        _run_one(MODEL_PROVIDER_MAP[m], m, req.prompt, req.temperature, req.max_tokens)
+        _run_one(MODEL_PROVIDER_MAP[m], m, req.prompt, req.temperature, req.max_tokens, provider_keys[MODEL_PROVIDER_MAP[m]])
         for m in req.models
     ]
     results = await asyncio.gather(*tasks)

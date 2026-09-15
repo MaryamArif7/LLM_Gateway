@@ -2,13 +2,15 @@ import json
 import time
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sse_starlette.sse import EventSourceResponse
 from sqlalchemy import select
 
+from app.auth import get_current_user
 from app.cache import check_rate_limit, fingerprint, get_cached_response, set_cached_response
+from app.crypto import decrypt_provider_key
 from app.database import SessionLocal
-from app.models import Conversation, Message, RequestLog
+from app.models import Conversation, Message, ProviderKey, RequestLog, User
 from app.providers import get_provider
 from app.providers.base import ChatMessage
 from app.router.router import decide_route
@@ -17,23 +19,48 @@ from app.schemas import ChatRequest
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 
+async def _load_provider_keys(user_id) -> dict[str, str]:
+    """{provider_name: decrypted_key} for every provider this user has
+    connected. Looked up once per request, not once per fallback attempt."""
+    async with SessionLocal() as db:
+        result = await db.execute(select(ProviderKey).where(ProviderKey.user_id == user_id))
+        return {row.provider: decrypt_provider_key(row.encrypted_key) for row in result.scalars().all()}
+
+
 def _sse(event: str, data: dict) -> dict:
     return {"event": event, "data": json.dumps(data)}
 
 
 @router.post("/stream")
-async def chat_stream(req: ChatRequest, request: Request):
-    client_id = request.client.host if request.client else "anonymous"
-    allowed, remaining = await check_rate_limit(client_id)
+async def chat_stream(req: ChatRequest, request: Request, user: User = Depends(get_current_user)):
+    # rate limiting is per gateway key now, not per IP — this is what makes
+    # it "per-user" instead of global
+    allowed, remaining = await check_rate_limit(str(user.id))
     if not allowed:
         raise HTTPException(status_code=429, detail="Rate limit exceeded. Try again in a bit.")
 
     if not req.messages:
         raise HTTPException(status_code=400, detail="messages must not be empty")
 
+    provider_keys = await _load_provider_keys(user.id)
+    if not provider_keys:
+        raise HTTPException(
+            status_code=400,
+            detail="No provider keys connected. Add at least one in /dashboard/providers first.",
+        )
+
     last_user_prompt = req.messages[-1].content
     decision = decide_route(last_user_prompt, override_model=req.model)
-    chain = decision.chain
+    # only offer providers this user has actually connected — the router
+    # can still pick its favorite model, but the chain that gets TRIED is
+    # filtered down to what this user can actually pay for
+    chain = [(p, m) for p, m in decision.chain if p in provider_keys]
+    if not chain:
+        raise HTTPException(
+            status_code=400,
+            detail=f"None of your connected providers ({', '.join(provider_keys)}) match the routed model. "
+                   f"Connect {decision.chain[0][0]} or pin a different model.",
+        )
     plain_messages = [{"role": m.role, "content": m.content} for m in req.messages]
 
     async def event_generator():
@@ -69,7 +96,7 @@ async def chat_stream(req: ChatRequest, request: Request):
         for i, (provider_name, model_name) in enumerate(chain):
             fallback_used = i > 0
             try:
-                provider = get_provider(provider_name)
+                provider = get_provider(provider_name, provider_keys[provider_name])
                 yield _sse("meta", {
                     "provider": provider_name, "model": model_name,
                     "classification": decision.classification.query_type.value,

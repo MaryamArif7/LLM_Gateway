@@ -1,4 +1,35 @@
+from datetime import datetime
+
 from pydantic import BaseModel
+
+
+class ApiKeyCreate(BaseModel):
+    name: str = "Default key"
+
+
+class ApiKeyOut(BaseModel):
+    id: str
+    name: str
+    status: str
+    created_at: datetime
+    last_used_at: datetime | None
+
+
+class ApiKeyCreated(ApiKeyOut):
+    raw_key: str  # only ever present in the response to the create call
+
+
+class ProviderKeyCreate(BaseModel):
+    provider: str  # openai | anthropic | gemini | mistral
+    api_key: str
+
+
+class ProviderKeyOut(BaseModel):
+    id: str
+    provider: str
+    key_last4: str
+    status: str
+    created_at: datetime
 
 
 class ChatMessageIn(BaseModel):

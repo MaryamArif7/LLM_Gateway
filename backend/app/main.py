@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.routes import chat, compare, health
+from app.routes import auth, chat, compare, health, keys, provider_keys
 
 
 @asynccontextmanager
@@ -25,5 +25,8 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(auth.router)
+app.include_router(keys.router)
+app.include_router(provider_keys.router)
 app.include_router(chat.router)
 app.include_router(compare.router)
