@@ -20,8 +20,7 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 
 async def _load_provider_keys(user_id) -> dict[str, str]:
-    """{provider_name: decrypted_key} for every provider this user has
-    connected. Looked up once per request, not once per fallback attempt."""
+
     async with SessionLocal() as db:
         result = await db.execute(select(ProviderKey).where(ProviderKey.user_id == user_id))
         return {row.provider: decrypt_provider_key(row.encrypted_key) for row in result.scalars().all()}
@@ -33,8 +32,7 @@ def _sse(event: str, data: dict) -> dict:
 
 @router.post("/stream")
 async def chat_stream(req: ChatRequest, request: Request, user: User = Depends(get_current_user)):
-    # rate limiting is per gateway key now, not per IP — this is what makes
-    # it "per-user" instead of global
+
     allowed, remaining = await check_rate_limit(str(user.id))
     if not allowed:
         raise HTTPException(status_code=429, detail="Rate limit exceeded. Try again in a bit.")
@@ -51,9 +49,7 @@ async def chat_stream(req: ChatRequest, request: Request, user: User = Depends(g
 
     last_user_prompt = req.messages[-1].content
     decision = decide_route(last_user_prompt, override_model=req.model)
-    # only offer providers this user has actually connected — the router
-    # can still pick its favorite model, but the chain that gets TRIED is
-    # filtered down to what this user can actually pay for
+    
     chain = [(p, m) for p, m in decision.chain if p in provider_keys]
     if not chain:
         raise HTTPException(
@@ -64,7 +60,7 @@ async def chat_stream(req: ChatRequest, request: Request, user: User = Depends(g
     plain_messages = [{"role": m.role, "content": m.content} for m in req.messages]
 
     async def event_generator():
-        # --- cache check (only against the top-of-chain model) ---
+     
         top_provider, top_model = chain[0]
         cache_key = fingerprint(top_model, plain_messages, req.temperature)
         cached = await get_cached_response(cache_key)
@@ -78,12 +74,11 @@ async def chat_stream(req: ChatRequest, request: Request, user: User = Depends(g
                 "reason": decision.classification.reason,
                 "cache_hit": True, "conversation_id": conversation_id,
             })
-            # replay cached content as a single chunk — still a real stream
-            # from the client's perspective, just instant
+           
             yield _sse("delta", {"text": cached["content"]})
             yield _sse("done", {
                 "input_tokens": cached["input_tokens"], "output_tokens": cached["output_tokens"],
-                "cost_usd": 0.0,  # cache hits cost nothing — that's the point
+                "cost_usd": 0.0, 
                 "latency_ms": 5, "cache_hit": True, "fallback_used": False,
             })
             await _persist(conversation_id, req, cached["content"], top_provider, top_model,
@@ -91,7 +86,6 @@ async def chat_stream(req: ChatRequest, request: Request, user: User = Depends(g
                             0.0, 5, True, False, None)
             return
 
-        # --- try providers in fallback order ---
         last_error = None
         for i, (provider_name, model_name) in enumerate(chain):
             fallback_used = i > 0
@@ -128,13 +122,12 @@ async def chat_stream(req: ChatRequest, request: Request, user: User = Depends(g
                         await _persist(conversation_id, req, full_text, provider_name, model_name,
                                         decision, chunk.input_tokens, chunk.output_tokens,
                                         chunk.cost_usd, chunk.latency_ms, False, fallback_used, None)
-                return  # success — stop trying further providers
-            except Exception as e:  # noqa: BLE001 — deliberately broad: any provider failure triggers fallback
+                return
+            except Exception as e:  
                 last_error = str(e)
                 yield _sse("provider_error", {"provider": provider_name, "model": model_name, "error": last_error})
                 continue
 
-        # every provider in the chain failed
         yield _sse("error", {"message": f"All providers failed. Last error: {last_error}"})
         await _persist(conversation_id, req, "", chain[-1][0], chain[-1][1], decision,
                         0, 0, 0.0, 0, False, True, last_error)
@@ -165,3 +158,11 @@ async def _persist(conversation_id, req, content, provider, model, decision,
             cache_hit=cache_hit, fallback_used=fallback_used, error=error,
         ))
         await session.commit()
+
+"""
+1.Standard HTTP requests wait for the entire body to finish before returning. 
+SSE maintains a persistent, open HTTP connection where the server pushes structured 
+events (meta, delta, done, provider_error) to the client as they occu
+Frontend UIs need structured streaming events to render text chunks
+ (delta), display metadata badges (e.g., "Routed to Gemini-1.5-Pro"),
+  and handle error states gracefully without breaking the user experience.

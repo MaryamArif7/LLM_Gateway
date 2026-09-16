@@ -1,9 +1,4 @@
-"""
-A deliberately bare-bones signup. No password, no email verification —
-just enough to unblock "create the first key" for a portfolio project.
-A real product would put a proper login flow here later; this is the
-minimum that lets phase 1 actually be testable today.
-"""
+
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
@@ -24,7 +19,7 @@ async def signup(email: str):
 
         user = User(email=email)
         db.add(user)
-        await db.flush()  # assigns user.id without ending the transaction
+        await db.flush() 
 
         raw_key = generate_gateway_key()
         api_key = ApiKey(user_id=user.id, key_hash=hash_gateway_key(raw_key), name="Default key")

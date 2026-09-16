@@ -1,11 +1,4 @@
-"""
-Heuristic classifier for v1. Deliberately NOT a trained model — regex/keyword
-rules are fast, free, and (crucially) explainable: every routing decision can
-say exactly *why* it fired. A learned classifier (e.g. embeddings + a small
-sklearn model, like RouteLLM's approach) is a natural upgrade once you have
-labeled traffic to train on — swap this function's internals without
-touching anything that calls it.
-"""
+
 import re
 from dataclasses import dataclass
 from enum import Enum

@@ -1,10 +1,4 @@
-"""
-Compare mode is a deliberately separate code path from /api/chat/stream.
-It does NOT go through the router or the fallback chain — the whole point
-is to see every requested model's real output side by side, so bypassing
-the "pick one" logic is correct here, not a bug. This is also how you'd
-generate the ground-truth data to validate the classifier in router/.
-"""
+
 import asyncio
 import time
 
@@ -20,7 +14,7 @@ from app.models import User
 
 router = APIRouter(prefix="/api/compare", tags=["compare"])
 
-MAX_COMPARE_MODELS = 4  # guard against someone passing 20 models and nuking their bill
+MAX_COMPARE_MODELS = 4  
 
 
 async def _run_one(provider_name: str, model_name: str, prompt: str, temperature: float, max_tokens: int, api_key: str) -> dict:
@@ -34,7 +28,7 @@ async def _run_one(provider_name: str, model_name: str, prompt: str, temperature
             "cost_usd": round(resp.cost_usd, 6), "latency_ms": round(resp.latency_ms, 1),
             "error": None,
         }
-    except Exception as e:  # noqa: BLE001
+    except Exception as e: 
         return {
             "provider": provider_name, "model": model_name, "content": None,
             "input_tokens": 0, "output_tokens": 0, "cost_usd": 0, "latency_ms": round((time.perf_counter()), 1),
@@ -44,8 +38,7 @@ async def _run_one(provider_name: str, model_name: str, prompt: str, temperature
 
 @router.post("")
 async def compare(req: CompareRequest, request: Request, user: User = Depends(get_current_user)):
-    # compare is expensive (N calls per request) — charge it against the same
-    # per-minute budget as chat so it can't be used to dodge rate limits
+    
     allowed, _ = await check_rate_limit(str(user.id))
     if not allowed:
         raise HTTPException(status_code=429, detail="Rate limit exceeded. Try again in a bit.")

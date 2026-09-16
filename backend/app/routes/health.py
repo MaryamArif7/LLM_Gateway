@@ -14,8 +14,7 @@ async def health():
 
 @router.get("/api/stats")
 async def stats():
-    """Minimal usage summary — swap for the Grafana/Kafka pipeline later;
-    this is enough to power a simple in-app stats panel today."""
+   
     async with SessionLocal() as session:
         result = await session.execute(
             select(
