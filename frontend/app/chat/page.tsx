@@ -1,6 +1,8 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ArrowUp, Sparkles, Copy, Square } from "lucide-react";
+import { getStoredKey, streamChat } from "@/lib/api";
 
 const SUGGESTIONS = [
   "Summarize a long article",
@@ -13,8 +15,13 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [routing, setRouting] = useState(false);
+  const [hasKey, setHasKey] = useState(true); // assume true until checked, avoids a flash of the banner
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
+
+  useEffect(() => {
+    setHasKey(!!getStoredKey());
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -32,8 +39,64 @@ export default function ChatPage() {
 
   function send(text) {
     if (!text.trim() || routing) return;
+    if (!getStoredKey()) {
+      setHasKey(false);
+      return;
+    }
 
+    const userMessage = { role: "user", content: text };
+    const assistantMessage = { role: "assistant", content: "", streaming: true, meta: {} };
+    const history = [...messages, userMessage].map((m) => ({ role: m.role, content: m.content }));
+
+    setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setInput("");
+    setRouting(true);
+
+    streamChat(history, {
+      onMeta: (data) => {
+        setMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = {
+            ...next[next.length - 1],
+            meta: { model: data.model, cacheHit: data.cache_hit },
+          };
+          return next;
+        });
+      },
+      onDelta: (text) => {
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          next[next.length - 1] = { ...last, content: last.content + text };
+          return next;
+        });
+      },
+      onDone: (data) => {
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          next[next.length - 1] = {
+            ...last,
+            streaming: false,
+            meta: { ...last.meta, latency: Math.round(data.latency_ms) },
+          };
+          return next;
+        });
+        setRouting(false);
+      },
+      onError: (message) => {
+        setMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = {
+            ...next[next.length - 1],
+            content: `Something went wrong: ${message}`,
+            streaming: false,
+          };
+          return next;
+        });
+        setRouting(false);
+      },
+    });
   }
 
   function handleKeyDown(e) {
@@ -70,8 +133,24 @@ export default function ChatPage() {
           </span>
           Gateway
         </div>
-       
+        <Link href="/dashboard/keys" className="text-xs text-muted-foreground hover:text-foreground">
+          {hasKey ? "Manage keys" : "Get started →"}
+        </Link>
       </header>
+
+      {!hasKey && (
+        <div className="relative border-b border-border bg-muted/50 px-5 py-2.5 text-center text-sm text-muted-foreground">
+          You need a gateway key before you can chat.{" "}
+          <Link href="/dashboard/keys" className="font-medium text-foreground underline underline-offset-2">
+            Create one here
+          </Link>
+          , then connect a provider in{" "}
+          <Link href="/dashboard/providers" className="font-medium text-foreground underline underline-offset-2">
+            provider settings
+          </Link>
+          .
+        </div>
+      )}
 
       <div ref={scrollRef} className="relative flex-1 overflow-y-auto">
         <div className="mx-auto flex min-h-full max-w-2xl flex-col gap-7 px-5 py-10">
