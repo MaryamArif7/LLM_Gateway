@@ -1,3 +1,4 @@
+import asyncio
 import time
 from typing import AsyncIterator
 
@@ -11,12 +12,23 @@ PRICING = {
     "gemini-1.5-pro": (1.25, 5.00),
 }
 
+# google.generativeai.configure() sets a key on the SDK module itself, not
+# on any one instance. With one shared key that was harmless. With BYOK,
+# two users' requests can be in flight at the same time, and without this
+# lock, one user's request could run with another user's key. The lock
+# forces Gemini calls through this provider one at a time so the configure
+# call and the request that depends on it always stay paired correctly.
+# Trade-off: Gemini requests are serialized process-wide. If that becomes
+# a real bottleneck, the fix is switching to the newer google-genai SDK,
+# which supports a per-instance client and removes the need for this lock.
+_gemini_lock = asyncio.Lock()
+
 
 class GeminiProvider(BaseProvider):
     name = "gemini"
 
     def __init__(self, api_key: str):
-        genai.configure(api_key=api_key)
+        self._api_key = api_key
 
     def estimate_cost(self, input_tokens: int, output_tokens: int, model: str) -> float:
         in_price, out_price = PRICING.get(model, PRICING["gemini-2.0-flash"])
@@ -39,28 +51,30 @@ class GeminiProvider(BaseProvider):
         temperature: float = 0.7,
         max_tokens: int = 1024,
     ) -> ProviderResponse:
-        start = time.perf_counter()
-        gm, history = self._build(messages, model)
-        convo = history[:-1]
-        last = history[-1]["parts"][0]
-        chat_session = gm.start_chat(history=convo)
-        resp = await chat_session.send_message_async(
-            last,
-            generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
-        )
-        latency_ms = (time.perf_counter() - start) * 1000
-        in_tok = resp.usage_metadata.prompt_token_count
-        out_tok = resp.usage_metadata.candidates_token_count
-        cost = self.estimate_cost(in_tok, out_tok, model)
-        return ProviderResponse(
-            content=resp.text,
-            input_tokens=in_tok,
-            output_tokens=out_tok,
-            model=model,
-            provider=self.name,
-            latency_ms=latency_ms,
-            cost_usd=cost,
-        )
+        async with _gemini_lock:
+            genai.configure(api_key=self._api_key)
+            start = time.perf_counter()
+            gm, history = self._build(messages, model)
+            convo = history[:-1]
+            last = history[-1]["parts"][0]
+            chat_session = gm.start_chat(history=convo)
+            resp = await chat_session.send_message_async(
+                last,
+                generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
+            )
+            latency_ms = (time.perf_counter() - start) * 1000
+            in_tok = resp.usage_metadata.prompt_token_count
+            out_tok = resp.usage_metadata.candidates_token_count
+            cost = self.estimate_cost(in_tok, out_tok, model)
+            return ProviderResponse(
+                content=resp.text,
+                input_tokens=in_tok,
+                output_tokens=out_tok,
+                model=model,
+                provider=self.name,
+                latency_ms=latency_ms,
+                cost_usd=cost,
+            )
 
     async def chat_stream(
         self,
@@ -69,32 +83,34 @@ class GeminiProvider(BaseProvider):
         temperature: float = 0.7,
         max_tokens: int = 1024,
     ) -> AsyncIterator[StreamChunk]:
-        start = time.perf_counter()
-        gm, history = self._build(messages, model)
-        convo = history[:-1]
-        last = history[-1]["parts"][0]
-        chat_session = gm.start_chat(history=convo)
-        resp = await chat_session.send_message_async(
-            last,
-            generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
-            stream=True,
-        )
-        in_tok = 0
-        out_tok = 0
-        async for chunk in resp:
-            if chunk.text:
-                yield StreamChunk(delta=chunk.text)
-            if chunk.usage_metadata:
-                in_tok = chunk.usage_metadata.prompt_token_count
-                out_tok = chunk.usage_metadata.candidates_token_count
+        async with _gemini_lock:
+            genai.configure(api_key=self._api_key)
+            start = time.perf_counter()
+            gm, history = self._build(messages, model)
+            convo = history[:-1]
+            last = history[-1]["parts"][0]
+            chat_session = gm.start_chat(history=convo)
+            resp = await chat_session.send_message_async(
+                last,
+                generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
+                stream=True,
+            )
+            in_tok = 0
+            out_tok = 0
+            async for chunk in resp:
+                if chunk.text:
+                    yield StreamChunk(delta=chunk.text)
+                if chunk.usage_metadata:
+                    in_tok = chunk.usage_metadata.prompt_token_count
+                    out_tok = chunk.usage_metadata.candidates_token_count
 
-        latency_ms = (time.perf_counter() - start) * 1000
-        cost = self.estimate_cost(in_tok, out_tok, model)
-        yield StreamChunk(
-            delta="",
-            finished=True,
-            input_tokens=in_tok,
-            output_tokens=out_tok,
-            cost_usd=cost,
-            latency_ms=latency_ms,
-        )
+            latency_ms = (time.perf_counter() - start) * 1000
+            cost = self.estimate_cost(in_tok, out_tok, model)
+            yield StreamChunk(
+                delta="",
+                finished=True,
+                input_tokens=in_tok,
+                output_tokens=out_tok,
+                cost_usd=cost,
+                latency_ms=latency_ms,
+            )
