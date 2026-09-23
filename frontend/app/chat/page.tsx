@@ -15,7 +15,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [routing, setRouting] = useState(false);
-  const [hasKey, setHasKey] = useState(true); // assume true until checked, avoids a flash of the banner
+  const [hasKey, setHasKey] = useState(true);
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
 

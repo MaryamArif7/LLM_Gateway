@@ -83,7 +83,7 @@ export default function KeysPage() {
     setKeys([]);
   }
 
-  // --- no key yet: sign up ---
+
   if (!activeKey) {
     return (
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 px-5 text-foreground">
@@ -114,7 +114,7 @@ export default function KeysPage() {
     );
   }
 
-  // --- signed in: manage keys ---
+
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 text-foreground">
       <div className="mb-6 flex items-center justify-between">
