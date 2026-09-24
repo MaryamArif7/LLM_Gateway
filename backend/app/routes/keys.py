@@ -23,8 +23,6 @@ async def create_key(
     await db.commit()
     await db.refresh(api_key)
 
-    # raw_key is only ever available right here, right now — the database
-    # only ever stores the hash, so there is no way to recover it later
     return ApiKeyCreated(
         id=str(api_key.id), name=api_key.name, status=api_key.status,
         created_at=api_key.created_at, last_used_at=api_key.last_used_at,

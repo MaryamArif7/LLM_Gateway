@@ -1,15 +1,11 @@
-
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
-
 from app.crypto import generate_gateway_key, hash_gateway_key
 from app.database import SessionLocal
 from app.models import ApiKey, User
 from app.schemas import ApiKeyCreated
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-
-
 @router.post("/signup", response_model=ApiKeyCreated)
 async def signup(email: str):
     async with SessionLocal() as db:

@@ -22,7 +22,7 @@ async def add_provider_key(
     if body.provider not in VALID_PROVIDERS:
         raise HTTPException(status_code=400, detail=f"provider must be one of {sorted(VALID_PROVIDERS)}")
 
-    # one key per provider per user — adding again replaces the old one
+
     existing = await db.execute(
         select(ProviderKey).where(ProviderKey.user_id == user.id, ProviderKey.provider == body.provider)
     )
@@ -34,7 +34,7 @@ async def add_provider_key(
 
     row.encrypted_key = encrypt_provider_key(body.api_key)
     row.key_last4 = mask_key(body.api_key)
-    row.status = "unverified"  # phase 1 doesn't call the provider to verify yet — that's a fast follow
+    row.status = "unverified" 
 
     await db.commit()
     await db.refresh(row)

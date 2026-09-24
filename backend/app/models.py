@@ -20,16 +20,13 @@ class User(Base):
 
 
 class ApiKey(Base):
-    """A gateway key — what a user pastes into the chat client to call
-    OUR service. Stored as a one-way hash, never the raw value."""
-
     __tablename__ = "api_keys"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     key_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(100), default="Default key")
-    status: Mapped[str] = mapped_column(String(20), default="active")  # active | revoked
+    status: Mapped[str] = mapped_column(String(20), default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -37,17 +34,14 @@ class ApiKey(Base):
 
 
 class ProviderKey(Base):
-    """A user's own OpenAI / Anthropic / Gemini / Mistral key — the BYOK
-    vault. The raw key is encrypted, never stored or logged in plain text."""
-
     __tablename__ = "provider_keys"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
-    provider: Mapped[str] = mapped_column(String(50))  # openai | anthropic | gemini | mistral
+    provider: Mapped[str] = mapped_column(String(50))  
     encrypted_key: Mapped[str] = mapped_column(Text)
     key_last4: Mapped[str] = mapped_column(String(10))
-    status: Mapped[str] = mapped_column(String(20), default="unverified")  # unverified | valid | invalid
+    status: Mapped[str] = mapped_column(String(20), default="unverified")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="provider_keys")
@@ -76,9 +70,6 @@ class Message(Base):
 
 
 class RequestLog(Base):
-    """One row per provider call — the source of truth for cost tracking,
-    routing analysis, and the observability dashboard."""
-
     __tablename__ = "request_logs"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

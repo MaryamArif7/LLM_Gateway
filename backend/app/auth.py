@@ -1,22 +1,7 @@
-"""
-FastAPI dependency that reads the Authorization header, checks it against
-the api_keys table, and hands the route the User row it belongs to.
-
-Usage in a route:
-
-    @router.post("/stream")
-    async def chat_stream(req: ChatRequest, user: User = Depends(get_current_user)):
-        ...
-
-Anything that depends on get_current_user is now a protected route — call
-it without a valid key and FastAPI returns 401 before your route code runs.
-"""
 from datetime import datetime, timezone
-
 from fastapi import Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.crypto import hash_gateway_key
 from app.database import get_db
 from app.models import ApiKey, User

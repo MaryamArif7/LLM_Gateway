@@ -159,10 +159,3 @@ async def _persist(conversation_id, req, content, provider, model, decision,
         ))
         await session.commit()
 
-"""
-1.Standard HTTP requests wait for the entire body to finish before returning. 
-SSE maintains a persistent, open HTTP connection where the server pushes structured 
-events (meta, delta, done, provider_error) to the client as they occu
-Frontend UIs need structured streaming events to render text chunks
- (delta), display metadata badges (e.g., "Routed to Gemini-1.5-Pro"),
-  and handle error states gracefully without breaking the user experience.
