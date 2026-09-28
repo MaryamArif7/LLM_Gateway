@@ -126,26 +126,10 @@ export default function ChatPage() {
         }}
       />
 
-      <header className="relative flex shrink-0 items-center justify-center border-b border-border px-5 py-3">
-        {hasKey ? (
-          <Link
-            href="/dashboard/keys"
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            Manage keys
-          </Link>
-        ) : (
-          <Link
-            href="/dashboard/keys"
-            className="rounded-full bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
-          >
-            Get started
-          </Link>
-        )}
-      </header>
+    
 
       {!hasKey && (
-        <div className="relative border-b border-border bg-muted/50 px-5 py-2.5 text-center text-sm text-muted-foreground">
+        <div className="relative mt-10   r bg-muted/50 px-5 py-2.5 text-center text-sm text-muted-foreground">
           You need a gateway key before you can chat.{" "}
           <Link
             href="/dashboard/keys"
@@ -163,7 +147,23 @@ export default function ChatPage() {
           .
         </div>
       )}
-
+  <header className="relative flex shrink-0 items-center justify-center  border-border px-5 py-3">
+        {hasKey ? (
+          <Link
+            href="/dashboard/keys"
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Manage keys
+          </Link>
+        ) : (
+          <Link
+            href="/dashboard/keys"
+            className="rounded-full bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+          >
+            Get started
+          </Link>
+        )}
+      </header>
       <div ref={scrollRef} className="relative flex-1 overflow-y-auto">
         <div className="mx-auto flex min-h-full max-w-2xl flex-col gap-7 px-5 py-10">
           {messages.length === 0 ? (
