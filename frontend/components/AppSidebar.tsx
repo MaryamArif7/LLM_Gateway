@@ -16,7 +16,7 @@ import {
 import { getStoredKey } from "@/lib/api";
 
 const NAV_ITEMS = [
-  { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
   { href: "/dashboard/keys", label: "Gateway keys", icon: KeyRound },
   { href: "/dashboard/providers", label: "Providers", icon: Plug },
 ];

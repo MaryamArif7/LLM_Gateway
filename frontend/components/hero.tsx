@@ -44,7 +44,7 @@ const handleOpenChat=()=>{
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button onClick={handleOpenChat} size="lg" className="gap-2">
-              Open the chat
+           Lets Gets Started
               <ArrowRight className="h-4 w-4" />
             </Button>
             <Button size="lg" variant="outline">

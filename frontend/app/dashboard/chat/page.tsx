@@ -126,26 +126,38 @@ export default function ChatPage() {
         }}
       />
 
-      <header className="relative flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <Sparkles size={13} />
-          </span>
-          Gateway
-        </div>
-        <Link href="/dashboard/keys" className="text-xs text-muted-foreground hover:text-foreground">
-          {hasKey ? "Manage keys" : "Get started →"}
-        </Link>
+      <header className="relative flex shrink-0 items-center justify-center border-b border-border px-5 py-3">
+        {hasKey ? (
+          <Link
+            href="/dashboard/keys"
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Manage keys
+          </Link>
+        ) : (
+          <Link
+            href="/dashboard/keys"
+            className="rounded-full bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+          >
+            Get started
+          </Link>
+        )}
       </header>
 
       {!hasKey && (
         <div className="relative border-b border-border bg-muted/50 px-5 py-2.5 text-center text-sm text-muted-foreground">
           You need a gateway key before you can chat.{" "}
-          <Link href="/dashboard/keys" className="font-medium text-foreground underline underline-offset-2">
+          <Link
+            href="/dashboard/keys"
+            className="font-medium text-foreground underline underline-offset-2"
+          >
             Create one here
           </Link>
           , then connect a provider in{" "}
-          <Link href="/dashboard/providers" className="font-medium text-foreground underline underline-offset-2">
+          <Link
+            href="/dashboard/providers"
+            className="font-medium text-foreground underline underline-offset-2"
+          >
             provider settings
           </Link>
           .
@@ -252,7 +264,6 @@ export default function ChatPage() {
               {routing ? <Square size={13} /> : <ArrowUp size={16} />}
             </button>
           </div>
-        
         </div>
       </div>
     </div>
