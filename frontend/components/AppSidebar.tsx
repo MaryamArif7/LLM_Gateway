@@ -19,6 +19,10 @@ const NAV_ITEMS = [
   { href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
   { href: "/dashboard/keys", label: "Gateway keys", icon: KeyRound },
   { href: "/dashboard/providers", label: "Providers", icon: Plug },
+  { href: "/dashboard/usage", label: "Usage", icon: BarChart3 },
+  { href: "/dashboard/prompts", label: "Prompts", icon: FileText },
+  { href: "/dashboard/experiments", label: "Experiments", icon: FlaskConical },
+  { href: "/dashboard/status", label: "Status", icon: Activity },
 ];
 
 const COMING_SOON = [

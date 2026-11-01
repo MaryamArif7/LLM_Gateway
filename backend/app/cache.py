@@ -7,9 +7,9 @@ from app.config import settings
 from app.redis_client import get_redis
 
 
-def fingerprint(model: str, messages: list[dict], temperature: float) -> str:
+def fingerprint(scope: str, model: str, messages: list[dict], temperature: float) -> str:
     payload = json.dumps(
-        {"model": model, "messages": messages, "temperature": temperature},
+        {"scope": scope,"model": model, "messages": messages, "temperature": temperature},
         sort_keys=True,
     )
     return hashlib.sha256(payload.encode()).hexdigest()

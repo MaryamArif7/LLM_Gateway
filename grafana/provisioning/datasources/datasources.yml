@@ -1,0 +1,27 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+
+  # The gateway database, read only, through the grafana_ro role from
+  # infra/postgres/grafana_readonly.sql. Values come from the environment.
+  - name: Gateway Postgres
+    uid: gateway-postgres
+    type: postgres
+    access: proxy
+    url: ${GRAFANA_PG_HOST}
+    user: ${GRAFANA_PG_USER}
+    editable: false
+    jsonData:
+      database: ${GRAFANA_PG_DATABASE}
+      sslmode: ${GRAFANA_PG_SSLMODE}
+      postgresVersion: 1500
+      timescaledb: false
+    secureJsonData:
+      password: ${GRAFANA_PG_PASSWORD}
